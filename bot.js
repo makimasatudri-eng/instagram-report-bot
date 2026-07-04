@@ -38,7 +38,7 @@ bot.on('message', (msg) => {
                 inline_keyboard: [
                     [{
                         text: isAllowed ? "🚀 Open Report Tool" : "🔒 Request Access",
-                        web_app: { url: "" } // ← Yahan apna domain daal dena
+                        web_app: { url: "instagram-report-bot-production-d452.up.railway.app" } // ← Yahan apna domain daal dena
                     }]
                 ]
             }
