@@ -1,4 +1,4 @@
-// server.js - Combined Telegram Bot + Express Server
+// server.js - Final Combined Version
 const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
 const axios = require('axios');
@@ -7,8 +7,8 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 
-const TOKEN = process.env.TELEGRAM_TOKEN; 
-const ADMIN_ID = 7145835109;
+const TOKEN = process.env.TELEGRAM_TOKEN;
+const ADMIN_ID = 7968968395;
 
 if (!TOKEN) {
     console.error("❌ TELEGRAM_TOKEN environment variable is required!");
@@ -44,17 +44,24 @@ console.log("🤖 Telegram Bot + Mini App Started...");
 
 bot.on('message', (msg) => {
     const chatId = msg.chat.id;
-    const userId = msg.from.id;
+    const userId = String(msg.from.id);
     const text = msg.text || '';
 
     if (text === '/start') {
-        const isAllowed = allowedUsers.includes(String(userId));
-        const webAppUrl = process.env.WEB_APP_URL || "https://your-project.up.railway.app";
-        
+        const isAllowed = allowedUsers.includes(userId);
+        const webAppUrl = process.env.WEB_APP_URL;
+
+        if (!webAppUrl) {
+            return bot.sendMessage(chatId, "❌ WEB_APP_URL not configured on Railway!");
+        }
+
+        const buttonText = isAllowed ? "🚀 Open Report Tool" : "🔒 Request Access";
+        const statusText = isAllowed ? "✅ Authorized" : "❌ Not Authorized";
+
         const opts = {
             reply_markup: {
                 inline_keyboard: [[{
-                    text: isAllowed ? "🚀 Open Report Tool" : "🔒 Request Access",
+                    text: buttonText,
                     web_app: { url: webAppUrl }
                 }]]
             }
@@ -62,14 +69,15 @@ bot.on('message', (msg) => {
 
         bot.sendMessage(chatId,
             `👋 Welcome to *PAID ASSASSIN*\n\n` +
-            `Status: ${isAllowed ? '✅ Authorized' : '❌ Not Authorized'}\n\n` +
-            `Admin se contact karo access ke liye.`,
+            `Status: ${statusText}\n\n` +
+            `Your ID: \`${userId}\`\n\n` +
+            `${isAllowed ? 'Report Tool khol sakte ho ✅' : 'Access ke liye Admin se contact karo!'}`,
             { parse_mode: "Markdown", ...opts }
         );
     }
 
     // Admin Commands
-    if (userId === ADMIN_ID) {
+    if (String(msg.from.id) === String(ADMIN_ID)) {
         if (text.startsWith('/add ')) {
             const target = text.split(' ')[1];
             if (!target) return bot.sendMessage(chatId, "Usage: /add <userid>");
@@ -87,7 +95,7 @@ bot.on('message', (msg) => {
         if (text.startsWith('/remove ')) {
             const target = text.split(' ')[1];
             if (!target) return bot.sendMessage(chatId, "Usage: /remove <userid>");
-            if (String(target) == ADMIN_ID) return bot.sendMessage(chatId, "Cannot remove admin!");
+            if (target == ADMIN_ID) return bot.sendMessage(chatId, "Cannot remove admin!");
             
             allowedUsers = allowedUsers.filter(id => id !== target.toUpperCase());
             saveUsers();
@@ -161,7 +169,8 @@ app.post('/check-username', async (req, res) => {
 
 app.post('/api/login', (req, res) => {
     const { userId } = req.body;
-    res.json({ success: allowedUsers.includes(String(userId).toUpperCase()) });
+    const success = allowedUsers.includes(String(userId).toUpperCase());
+    res.json({ success });
 });
 
 app.get('/api/users', (req, res) => res.json({ allowedUsers }));
@@ -170,7 +179,7 @@ app.get('/api/allowed-users', (req, res) => res.json({ allowedUsers }));
 app.post('/api/add-user', (req, res) => {
     const { userId, adminId } = req.body;
     if (adminId !== "7968968395") return res.json({ success: false });
-    const upperId = userId.trim().toUpperCase();
+    const upperId = String(userId).trim().toUpperCase();
     if (!allowedUsers.includes(upperId)) {
         allowedUsers.push(upperId);
         saveUsers();
@@ -187,7 +196,7 @@ app.post('/api/remove-user', (req, res) => {
 });
 
 // Start Server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
 });
