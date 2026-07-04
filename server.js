@@ -1,4 +1,5 @@
-require('./bot');
+// server.js - Combined Telegram Bot + Express Server
+const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
@@ -6,16 +7,23 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 
+const TOKEN = process.env.TELEGRAM_TOKEN; 
+const ADMIN_ID = 7968968395;
+
+if (!TOKEN) {
+    console.error("❌ TELEGRAM_TOKEN environment variable is required!");
+    process.exit(1);
+}
+
+const bot = new TelegramBot(TOKEN, { polling: true });
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// FIXED: user.json (ZIP ke according)
+// User management
 const USERS_FILE = path.join(__dirname, 'user.json');
-
-// Load users
 let allowedUsers = ["7968968395"];
 
 if (fs.existsSync(USERS_FILE)) {
@@ -27,207 +35,159 @@ if (fs.existsSync(USERS_FILE)) {
     }
 }
 
-// Save users
 function saveUsers() {
-    fs.writeFileSync(
-        USERS_FILE,
-        JSON.stringify({ allowedUsers }, null, 2)
-    );
+    fs.writeFileSync(USERS_FILE, JSON.stringify({ allowedUsers }, null, 2));
 }
 
-// Home page
+// ===================== TELEGRAM BOT =====================
+console.log("🤖 Telegram Bot + Mini App Started...");
+
+bot.on('message', (msg) => {
+    const chatId = msg.chat.id;
+    const userId = msg.from.id;
+    const text = msg.text || '';
+
+    if (text === '/start') {
+        const isAllowed = allowedUsers.includes(String(userId));
+        const webAppUrl = process.env.WEB_APP_URL || "https://your-project.up.railway.app";
+        
+        const opts = {
+            reply_markup: {
+                inline_keyboard: [[{
+                    text: isAllowed ? "🚀 Open Report Tool" : "🔒 Request Access",
+                    web_app: { url: webAppUrl }
+                }]]
+            }
+        };
+
+        bot.sendMessage(chatId,
+            `👋 Welcome to *PAID ASSASSIN*\n\n` +
+            `Status: ${isAllowed ? '✅ Authorized' : '❌ Not Authorized'}\n\n` +
+            `Admin se contact karo access ke liye.`,
+            { parse_mode: "Markdown", ...opts }
+        );
+    }
+
+    // Admin Commands
+    if (userId === ADMIN_ID) {
+        if (text.startsWith('/add ')) {
+            const target = text.split(' ')[1];
+            if (!target) return bot.sendMessage(chatId, "Usage: /add <userid>");
+           
+            const upper = target.trim().toUpperCase();
+            if (!allowedUsers.includes(upper)) {
+                allowedUsers.push(upper);
+                saveUsers();
+                bot.sendMessage(chatId, `✅ User ${upper} added!`);
+            } else {
+                bot.sendMessage(chatId, `⚠️ User already exists!`);
+            }
+        }
+        
+        if (text.startsWith('/remove ')) {
+            const target = text.split(' ')[1];
+            if (!target) return bot.sendMessage(chatId, "Usage: /remove <userid>");
+            if (String(target) == ADMIN_ID) return bot.sendMessage(chatId, "Cannot remove admin!");
+            
+            allowedUsers = allowedUsers.filter(id => id !== target.toUpperCase());
+            saveUsers();
+            bot.sendMessage(chatId, `✅ User ${target} removed.`);
+        }
+        
+        if (text === '/users') {
+            bot.sendMessage(chatId, `📋 Allowed Users:\n${allowedUsers.join('\n')}`);
+        }
+    }
+});
+
+// ===================== EXPRESS ROUTES =====================
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Users API
-app.get('/api/users', (req, res) => {
-    res.json({ allowedUsers });
-});
-
-// Username check (UNCHANGED)
 app.post('/check-username', async (req, res) => {
     let { username } = req.body;
-
-    if (!username) {
-        return res.json({ exists: false });
-    }
-
+    if (!username) return res.json({ exists: false });
+    
     username = username.trim().toLowerCase().replace('@', '');
-
     console.log(`Checking: ${username}`);
 
     try {
         const device = uuidv4();
         const family = uuidv4();
-        const android =
-            "android-" +
-            Math.random().toString(36).substring(2, 12);
-
+        const android = "android-" + Math.random().toString(36).substring(2, 12);
+        
         const payload = {
             params: `{"client_input_params":{"aac":"{\\"aac_init_timestamp\\":${Math.floor(Date.now()/1000)},\\"aacjid\\":\\"${uuidv4()}\\",\\"aaccs\\":\\"${Math.random().toString(36).substring(2,40)}\\"}","search_query":"${username}","search_screen_type":"email_or_username","ig_android_qe_device_id":"${device}"},"server_params":{"event_request_id":"${uuidv4()}","device_id":"${android}","family_device_id":"${family}","qe_device_id":"${device}"}}`,
-            bk_client_context:
-                '{"bloks_version":"5e47baf35c5a270b44c8906c8b99063564b30ef69779f3dee0b828bee2e4ef5b","styles_id":"instagram"}',
-            bloks_versioning_id:
-                "5e47baf35c5a270b44c8906c8b99063564b30ef69779f3dee0b828bee2e4ef5b"
+            bk_client_context: '{"bloks_version":"5e47baf35c5a270b44c8906c8b99063564b30ef69779f3dee0b828bee2e4ef5b","styles_id":"instagram"}',
+            bloks_versioning_id: "5e47baf35c5a270b44c8906c8b99063564b30ef69779f3dee0b828bee2e4ef5b"
         };
 
         const headers = {
-            'User-Agent':
-                "Instagram 370.1.0.43.96 Android (34/14; 450dpi;1080x2207;samsung;SM-A235F;a23;qcom;en_IN;704872281)",
+            'User-Agent': "Instagram 370.1.0.43.96 Android (34/14; 450dpi;1080x2207;samsung;SM-A235F;a23;qcom;en_IN;704872281)",
             'accept-language': 'en-IN,en-US',
             'x-ig-app-id': '567067343352427',
             'x-ig-device-id': device,
             'x-ig-family-device-id': family,
             'x-ig-android-id': android,
-            'x-mid': Buffer.from(
-                Math.random().toString(36).substring(2,20)
-            ).toString('base64').replace(/=/g,'')
+            'x-mid': Buffer.from(Math.random().toString(36).substring(2,20)).toString('base64').replace(/=/g,'')
         };
 
         const response = await axios.post(
             "https://i.instagram.com/api/v1/bloks/async_action/com.bloks.www.caa.ar.search.async/",
-            payload,
-            {
-                headers,
-                timeout:15000
-            }
+            payload, { headers, timeout: 15000 }
         );
 
-        const text =
-            response.data.toString().toLowerCase();
-
-        if (
-            text.includes(`"${username}"`) &&
-            !text.includes('"not_found"') &&
-            !text.includes('no_results')
-        ) {
-            return res.json({
-                exists:true,
-                username
-            });
+        const text = response.data.toString().toLowerCase();
+        if (text.includes(`"${username}"`) && !text.includes('"not_found"') && !text.includes('no_results')) {
+            return res.json({ exists: true, username });
         }
-
-    } catch(error) {
-        console.log("Error:",error.message);
+    } catch (error) {
+        console.log("Error:", error.message);
     }
 
     // Fallback
-    try{
-        const {data} = await axios.get(
-            `https://www.instagram.com/${username}/`,
-            {
-                headers:{
-                    'User-Agent':'Mozilla/5.0'
-                },
-                timeout:10000
-            }
-        );
-
-        if(
-            data.includes(
-                `"username":"${username}"`
-            )
-        ){
-            return res.json({
-                exists:true,
-                username
-            });
+    try {
+        const { data } = await axios.get(`https://www.instagram.com/${username}/`, {
+            headers: { 'User-Agent': 'Mozilla/5.0' }, timeout: 10000
+        });
+        if (data.includes(`"username":"${username}"`)) {
+            return res.json({ exists: true, username });
         }
+    } catch (e) {}
 
-    }catch(e){}
-
-    res.json({
-        exists:false
-    });
+    res.json({ exists: false });
 });
 
-// Login
-app.post('/api/login', (req,res)=>{
-    const {userId}=req.body;
-
-    if(
-        allowedUsers.includes(
-            userId.toUpperCase()
-        )
-    ){
-        return res.json({
-            success:true
-        });
-    }
-
-    res.json({
-        success:false
-    });
+app.post('/api/login', (req, res) => {
+    const { userId } = req.body;
+    res.json({ success: allowedUsers.includes(String(userId).toUpperCase()) });
 });
 
-app.get('/api/allowed-users',(req,res)=>{
-    res.json({allowedUsers});
-});
+app.get('/api/users', (req, res) => res.json({ allowedUsers }));
+app.get('/api/allowed-users', (req, res) => res.json({ allowedUsers }));
 
-app.post('/api/add-user',(req,res)=>{
-    const {userId,adminId}=req.body;
-
-    if(adminId!=="7968968395"){
-        return res.json({
-            success:false
-        });
-    }
-
-    const upperId=userId
-    .trim()
-    .toUpperCase();
-
-    if(
-        !allowedUsers.includes(
-            upperId
-        )
-    ){
-        allowedUsers.push(
-            upperId
-        );
-
+app.post('/api/add-user', (req, res) => {
+    const { userId, adminId } = req.body;
+    if (adminId !== "7968968395") return res.json({ success: false });
+    const upperId = userId.trim().toUpperCase();
+    if (!allowedUsers.includes(upperId)) {
+        allowedUsers.push(upperId);
         saveUsers();
     }
-
-    res.json({
-        success:true,
-        allowedUsers
-    });
+    res.json({ success: true, allowedUsers });
 });
 
-app.post('/api/remove-user',(req,res)=>{
-    const {userId,adminId}=req.body;
-
-    if(adminId!=="7968968395"){
-        return res.json({
-            success:false
-        });
-    }
-
-    if(userId==="7968968395"){
-        return res.json({
-            success:false
-        });
-    }
-
-    allowedUsers=
-    allowedUsers.filter(
-        id=>id!==userId
-    );
-
+app.post('/api/remove-user', (req, res) => {
+    const { userId, adminId } = req.body;
+    if (adminId !== "7968968395" || userId === "7968968395") return res.json({ success: false });
+    allowedUsers = allowedUsers.filter(id => id !== userId);
     saveUsers();
-
-    res.json({
-        success:true,
-        allowedUsers
-    });
+    res.json({ success: true, allowedUsers });
 });
 
-// Railway compatible
-const PORT =
-process.env.PORT || 5000;
-
-app.listen(PORT,'0.0.0.0',()=>{
+// Start Server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
 });
