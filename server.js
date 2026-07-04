@@ -8,7 +8,7 @@ const path = require('path');
 const fs = require('fs');
 
 const TOKEN = process.env.TELEGRAM_TOKEN;
-const ADMIN_ID = 7968968395;
+const ADMIN_ID = 7145835109;
 
 if (!TOKEN) {
     console.error("❌ TELEGRAM_TOKEN environment variable is required!");
