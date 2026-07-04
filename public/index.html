@@ -1,585 +1,279 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>PAID ASSASSIN REPORT BOT</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"/>
-  <style>
-    body {
-      background: linear-gradient(-45deg, #0a0a0a, #1a0000, #000000, #1a0000);
-      background-size: 400% 400%;
-      animation: gradient 15s ease infinite;
-      height: 100vh;
-    }
-    @keyframes gradient {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-    .glass {
-      background: rgba(255, 255, 255, 0.06);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    .log-row {
-      transition: all 0.2s ease;
-    }
-    .log-row:hover {
-      background: rgba(255, 255, 255, 0.05);
-    }
-    .banned {
-      animation: bannedPulse 1.5s infinite;
-    }
-    @keyframes bannedPulse {
-      0%, 100% { color: #ef4444; }
-      50% { color: #f87171; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAID ASSASSIN • Report Bot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0033 100%);
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+        .neon-text { text-shadow: 0 0 10px #a855f7, 0 0 20px #a855f7; }
+        .card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .card:hover { transform: translateY(-8px); }
+        .console {
+            background: #0a0a0a;
+            border: 1px solid #4b0082;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        .console-line { padding: 2px 8px; }
+        .success { color: #22c55e; }
+        .error { color: #ef4444; }
+        .banned { color: #f59e0b; font-weight: bold; }
+    </style>
 </head>
-<body class="text-white min-h-screen">
-
-  <div class="max-w-5xl mx-auto p-6 relative z-10">
-
-    <!-- LOGIN SCREEN -->
-    <div id="login-screen" class="flex items-center justify-center min-h-screen">
-      <div class="glass rounded-3xl p-10 w-full max-w-md">
-        <div class="text-center mb-8">
-          <div class="text-6xl mb-4">🔥</div>
-          <h1 class="text-3xl font-bold text-red-500">PAID ASSASSIN</h1>
-          <p class="text-zinc-400 mt-2">Report Bot • Secure Login</p>
-        </div>
-
-        <div class="space-y-6">
-          <div>
-            <label class="block text-sm text-zinc-400 mb-2">USER ID</label>
-            <input id="user-id-input" type="text" 
-                   class="w-full bg-zinc-900 border border-zinc-700 rounded-2xl px-6 py-4 text-lg focus:outline-none focus:border-red-500"
-                   placeholder="Enter your User ID" autocomplete="off">
-          </div>
-
-          <button onclick="login()" 
-                  class="w-full bg-red-600 hover:bg-red-700 py-5 rounded-2xl font-bold text-xl transition transform hover:scale-105">
-            LOGIN
-          </button>
-
-          <p class="text-center text-zinc-500 text-sm">
-            Contact @levitism for User ID
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <!-- MAIN APP -->
-    <div id="main-app" class="hidden">
-
-      <!-- Header -->
-      <div class="flex justify-between items-center mb-8 border-b border-zinc-800 pb-4">
-        <div>
-          <h1 class="text-3xl font-bold text-red-500">🔥 PAID ASSASSIN REPORT BOT</h1>
-          <p class="text-zinc-400 text-sm">by @levitism</p>
-        </div>
-        
-        <div class="flex items-center gap-4">
-          <div id="user-info" class="text-sm text-zinc-400 font-mono"></div>
-          <button onclick="logout()" 
-                  class="bg-zinc-800 hover:bg-zinc-700 px-5 py-2 rounded-2xl text-sm flex items-center gap-2">
-            <i class="fas fa-sign-out-alt"></i> LOGOUT
-          </button>
-        </div>
-      </div>
-
-      <!-- ADMIN NAV -->
-      <div id="admin-nav" class="hidden mb-6 bg-zinc-900 border border-red-500/30 rounded-2xl p-4">
-        <button onclick="showAdminPanel()" 
-                class="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-xl text-sm font-medium flex items-center gap-2">
-          👑 MANAGE USERS
-        </button>
-      </div>
-
-      <!-- Reporting Section -->
-      <div id="reporting-section">
-
-        <!-- Start Screen -->
-        <div id="start-screen" class="text-center py-10">
-          <img src="https://i.ibb.co/GfHVC0fY/photo-5472196357457123200-x.jpg" 
-               class="mx-auto rounded-2xl mb-8 w-64 shadow-2xl border border-red-500/20" 
-               alt="Assassin Logo"/>
-          
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
-            <button onclick="startReport()" 
-                    class="bg-red-600 hover:bg-red-700 p-6 rounded-3xl text-xl font-bold transition transform hover:scale-105 flex flex-col items-center gap-3">
-              <span class="text-4xl">🚀</span>
-              <span>START REPORTING</span>
-            </button>
-
-            <button onclick="startMonitoring()" 
-                    class="bg-gradient-to-br from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 p-6 rounded-3xl text-xl font-bold transition transform hover:scale-105 flex flex-col items-center gap-3">
-              <span class="text-4xl">👁️</span>
-              <span>MONITOR USERNAME</span>
-            </button>
-
-            <button onclick="openBanningMethods()" 
-                    class="bg-gradient-to-br from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 p-6 rounded-3xl text-xl font-bold transition transform hover:scale-105 flex flex-col items-center gap-3">
-              <span class="text-4xl">🔨</span>
-              <span>BANNING METHODS</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Report Flow -->
-        <div id="report-flow" class="hidden">
-          <div id="username-step">
-            <div class="flex items-center gap-3 mb-6">
-              <button onclick="goBackToStart()" class="text-zinc-400 hover:text-white">
-                <i class="fas fa-arrow-left text-xl"></i>
-              </button>
-              <h3 class="text-2xl font-semibold">👤 Enter Target Username</h3>
-            </div>
-            <div class="flex gap-3">
-              <input id="username" type="text" placeholder="example123" 
-                     class="flex-1 bg-zinc-900 border border-zinc-700 rounded-2xl px-6 py-4 text-lg focus:outline-none focus:border-red-500"/>
-              <button onclick="checkUsername()" 
-                      class="bg-white text-black px-8 rounded-2xl font-bold hover:bg-zinc-200 transition">
-                CHECK
-              </button>
-            </div>
-            <div id="check-result" class="mt-4 min-h-[60px]"></div>
-          </div>
-
-          <div id="report-type-step" class="hidden mt-8">
-            <div class="flex items-center gap-3 mb-6">
-              <button onclick="goBackToUsername()" class="text-zinc-400 hover:text-white">
-                <i class="fas fa-arrow-left text-xl"></i>
-              </button>
-              <h3 class="text-2xl font-semibold">🔽 Select Report Type</h3>
-            </div>
-            <div class="grid grid-cols-2 gap-3" id="report-buttons"></div>
-          </div>
-
-          <div id="live-reporting" class="hidden mt-8">
-            <div class="glass rounded-3xl p-6 border border-red-500/30">
-              <div class="flex justify-between items-center mb-6">
-                <div class="flex items-center gap-3">
-                  <button onclick="goBackToReportType()" class="text-zinc-400 hover:text-white">
-                    <i class="fas fa-arrow-left"></i>
-                  </button>
-                  <div>
-                    <span class="text-red-500">🎯 Target:</span> 
-                    <span id="live-target" class="font-mono font-bold"></span>
-                  </div>
-                </div>
-                <div class="flex items-center gap-2">
-                  <div class="text-green-500 flex items-center gap-1">
-                    <span class="relative flex h-3 w-3">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                      <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                    </span>
-                    LIVE
-                  </div>
-                  <div id="report-count" class="bg-zinc-900 px-4 py-1 rounded-xl text-sm font-mono">0 reports</div>
-                </div>
-              </div>
-              
-              <div id="live-table" class="bg-black rounded-2xl p-5 min-h-[360px] overflow-auto font-mono text-sm max-h-[420px]"></div>
-              
-              <div class="flex gap-3 mt-6">
-                <button onclick="stopReporting()" class="flex-1 bg-red-600 hover:bg-red-700 py-5 rounded-2xl font-bold text-lg transition">
-                  🛑 STOP REPORTING
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Monitor Section -->
-        <div id="monitor-section" class="hidden">
-          <div class="glass rounded-3xl p-8 max-w-2xl mx-auto">
-            <div class="flex items-center gap-3 mb-6">
-              <button onclick="goBackToStartFromMonitor()" class="text-zinc-400 hover:text-white">
-                <i class="fas fa-arrow-left text-xl"></i>
-              </button>
-              <h3 class="text-2xl font-semibold">👁️ Username Monitor</h3>
-            </div>
-
-            <div class="flex gap-3 mb-6">
-              <input id="monitor-username" type="text" placeholder="Enter username to monitor" 
-                     class="flex-1 bg-zinc-900 border border-zinc-700 rounded-2xl px-6 py-4 text-lg focus:outline-none focus:border-cyan-500"/>
-              <button onclick="startMonitorCheck()" 
-                      class="bg-cyan-600 hover:bg-cyan-700 px-10 rounded-2xl font-bold transition">
-                START MONITOR
-              </button>
-            </div>
-
-            <div id="monitor-result" class="min-h-[400px] bg-black rounded-2xl p-6 font-mono text-sm overflow-auto"></div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- ADMIN PANEL -->
-    <div id="admin-panel" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-      <div class="glass rounded-3xl p-8 w-full max-w-3xl max-h-[90vh] overflow-auto">
-        <div class="flex justify-between items-center mb-6">
-          <h2 class="text-3xl font-bold text-red-500">👑 Admin Panel</h2>
-          <button onclick="hideAdminPanel()" class="text-3xl text-zinc-400 hover:text-white">×</button>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div>
-            <h3 class="text-xl font-semibold mb-4">Add New User</h3>
-            <div class="flex gap-3">
-              <input id="new-user-id" type="text" placeholder="USERID123" 
-                     class="flex-1 bg-zinc-900 border border-zinc-700 rounded-2xl px-6 py-4 focus:outline-none focus:border-red-500"/>
-              <button onclick="addNewUser()" 
-                      class="bg-green-600 hover:bg-green-700 px-8 rounded-2xl font-bold">
-                ADD
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
-              Registered Users 
-              <span id="user-count" class="bg-zinc-800 text-xs px-3 py-1 rounded-full"></span>
-            </h3>
-            <div id="user-list" class="bg-black rounded-2xl p-4 max-h-96 overflow-auto space-y-2 text-sm"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const ADMIN_ID = "7968968395";
-    let currentUserId = null;
-    let targetUsername = "";
-    let reportName = "";
-    let count = 0;
-    let interval = null;
-    let liveMonitorInterval = null;
-
-    const reports = ["Spam", "Self Harm", "Sale of drugs", "Nudity", "Violence", "Hate", "Harassment", "Impersonation", "Copyright", "Underage", "Sale of firearms", "False information", "Fraud", "Violent threat"];
-
-    // ====================== AUTH ======================
-    async function login() {
-      let inputId = document.getElementById('user-id-input').value.trim().toUpperCase();
-      if (!inputId) return alert("Please enter User ID");
-
-      const resp = await fetch('/api/login', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ userId: inputId })
-      });
-      const data = await resp.json();
-
-      if (!data.success) return alert("❌ Invalid or Expired User ID!\nContact @levitism");
-
-      currentUserId = inputId;
-      localStorage.setItem('currentUser', currentUserId);
-
-      document.getElementById('login-screen').classList.add('hidden');
-      document.getElementById('main-app').classList.remove('hidden');
-      document.getElementById('user-info').innerHTML = `● ${currentUserId}`;
-
-      if (currentUserId === ADMIN_ID) document.getElementById('admin-nav').classList.remove('hidden');
-    }
-
-    function logout() {
-      if (confirm("Are you sure you want to logout?")) {
-        localStorage.removeItem('currentUser');
-        location.reload();
-      }
-    }
-
-    // ====================== ADMIN ======================
-    async function showAdminPanel() {
-      if (currentUserId !== ADMIN_ID) return;
-      document.getElementById('admin-panel').classList.remove('hidden');
-      await renderUserList();
-    }
-
-    function hideAdminPanel() {
-      document.getElementById('admin-panel').classList.add('hidden');
-    }
-
-    async function renderUserList() {
-      try {
-        const resp = await fetch('/api/allowed-users');
-        const data = await resp.json();
-        const container = document.getElementById('user-list');
-        container.innerHTML = '';
-        document.getElementById('user-count').textContent = `${data.allowedUsers.length} total`;
-
-        data.allowedUsers.forEach(id => {
-          const div = document.createElement('div');
-          div.className = "flex justify-between items-center bg-zinc-900 p-3 rounded-xl";
-          div.innerHTML = `
-            <span class="font-mono ${id === ADMIN_ID ? 'text-red-400' : 'text-white'}">${id}</span>
+<body class="min-h-screen text-white">
+    <div class="max-w-7xl mx-auto p-6">
+        <!-- Header -->
+        <div class="flex justify-center items-center mb-8 border-b border-purple-900 pb-6">
             <div class="flex items-center gap-3">
-              <span class="text-xs px-3 py-1 rounded-full ${id === ADMIN_ID ? 'bg-red-500/20 text-red-400' : 'bg-zinc-700 text-zinc-400'}">
-                ${id === ADMIN_ID ? 'ADMIN' : 'USER'}
-              </span>
-              ${id !== ADMIN_ID ? `<button onclick="removeUser('${id}')" class="text-red-500 hover:text-red-600 text-sm font-medium">Remove</button>` : ''}
+                <div class="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center text-2xl">🔥</div>
+                <div>
+                    <h1 class="text-3xl font-bold tracking-tighter neon-text">PAID ASSASSIN</h1>
+                    <p class="text-purple-400 text-sm">Instagram Mass Report Tool</p>
+                </div>
             </div>
-          `;
-          container.appendChild(div);
-        });
-      } catch(e) {}
-    }
-
-    async function addNewUser() {
-      if (currentUserId !== ADMIN_ID) return;
-      const newId = document.getElementById('new-user-id').value.trim().toUpperCase();
-      if (!newId) return alert("Enter a User ID");
-
-      const resp = await fetch('/api/add-user', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ userId: newId, adminId: ADMIN_ID })
-      });
-      const data = await resp.json();
-      if (data.success) {
-        document.getElementById('new-user-id').value = '';
-        renderUserList();
-        alert(`✅ User ${newId} added successfully!`);
-      }
-    }
-
-    async function removeUser(userId) {
-      if (currentUserId !== ADMIN_ID || userId === ADMIN_ID) return;
-      if (confirm(`Remove user ${userId}?`)) {
-        await fetch('/api/remove-user', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ userId, adminId: ADMIN_ID })
-        });
-        renderUserList();
-      }
-    }
-
-    // ====================== NAVIGATION ======================
-    function goBackToStart() {
-      document.getElementById('report-flow').classList.add('hidden');
-      document.getElementById('start-screen').classList.remove('hidden');
-    }
-
-    function goBackToStartFromMonitor() {
-      stopLiveMonitor();
-      document.getElementById('monitor-section').classList.add('hidden');
-      document.getElementById('start-screen').classList.remove('hidden');
-    }
-
-    function goBackToUsername() {
-      document.getElementById('report-type-step').classList.add('hidden');
-      document.getElementById('username-step').classList.remove('hidden');
-    }
-
-    function goBackToReportType() {
-      stopReporting();
-      document.getElementById('live-reporting').classList.add('hidden');
-      document.getElementById('report-type-step').classList.remove('hidden');
-    }
-
-    function startReport() {
-      document.getElementById('start-screen').classList.add('hidden');
-      document.getElementById('report-flow').classList.remove('hidden');
-      document.getElementById('username-step').classList.remove('hidden');
-    }
-
-    function startMonitoring() {
-      document.getElementById('start-screen').classList.add('hidden');
-      document.getElementById('monitor-section').classList.remove('hidden');
-      document.getElementById('monitor-result').innerHTML = '';
-    }
-
-    function openBanningMethods() {
-      window.open('https://t.me/+lMNelbcJKMk0N2Iy', '_blank');
-    }
-
-    // ====================== LIVE MONITOR (Every 10 Seconds) ======================
-    async function startMonitorCheck() {
-      let username = document.getElementById('monitor-username').value.trim().replace('@','').toLowerCase();
-      if (!username) return alert("Please enter a username");
-
-      stopLiveMonitor();
-      document.getElementById('monitor-result').innerHTML = `<p class="text-yellow-500">🔍 Starting continuous monitoring for @${username}...</p>`;
-
-      startLiveMonitor(username);
-    }
-
-    function startLiveMonitor(username) {
-      const resultDiv = document.getElementById('monitor-result');
-      let checkCount = 0;
-
-      liveMonitorInterval = setInterval(async () => {
-        checkCount++;
-        const time = new Date().toLocaleTimeString();
-
-        try {
-          const resp = await fetch('/check-username', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({username})
-          });
-          const data = await resp.json();
-
-          if (data.exists) {
-            resultDiv.innerHTML = `
-              <div class="text-center mb-6">
-                <p class="text-green-400 text-3xl font-bold">✅ @${username} IS ACTIVE</p>
-                <p class="text-zinc-400 mt-2">Checked: ${time} • Attempt: ${checkCount}</p>
-              </div>
-              <div class="bg-green-900/30 border border-green-500 rounded-2xl p-5 text-center">
-                <p class="text-green-400">Monitoring every 10 seconds...</p>
-              </div>
-            `;
-          } else {
-            resultDiv.innerHTML = `
-              <div class="text-center py-20 banned">
-                <h2 class="text-5xl font-bold text-red-500 mb-4">🚫 BANNED / NOT FOUND</h2>
-                <p class="text-red-400 text-2xl">@${username}</p>
-                <p class="text-zinc-400 mt-6">Last checked: ${time} • Attempt: ${checkCount}</p>
-              </div>
-            `;
-          }
-        } catch(e) {
-          resultDiv.innerHTML = `<p class="text-red-500 text-center">[${time}] Connection error... Retrying...</p>`;
-        }
-      }, 10000);
-    }
-
-    function stopLiveMonitor() {
-      if (liveMonitorInterval) {
-        clearInterval(liveMonitorInterval);
-        liveMonitorInterval = null;
-      }
-    }
-
-    // ====================== REPORTING ======================
-    async function checkUsername() {
-      let username = document.getElementById('username').value.trim().replace('@','').toLowerCase();
-      if (!username) return;
-
-      const resDiv = document.getElementById('check-result');
-      resDiv.innerHTML = `<p class="text-yellow-500">🔍 Checking @${username}...</p>`;
-
-      try {
-        const resp = await fetch('/check-username', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({username})
-        });
-        const data = await resp.json();
-
-        if (data.exists) {
-          resDiv.innerHTML = `✅ <b class="text-green-400">@${username}</b> exists and is valid!`;
-          targetUsername = username;
-          document.getElementById('username-step').classList.add('hidden');
-          showReportTypes();
-        } else {
-          resDiv.innerHTML = `❌ @${username} does NOT exist or is invalid.`;
-        }
-      } catch(e) {
-        resDiv.innerHTML = `❌ Server Error. Please try again.`;
-      }
-    }
-
-    function showReportTypes() {
-      const container = document.getElementById('report-buttons');
-      container.innerHTML = '';
-      reports.forEach((reason, i) => {
-        const btn = document.createElement('button');
-        btn.className = "bg-zinc-800 hover:bg-zinc-700 p-5 rounded-2xl text-left transition-all hover:border-red-500 border border-zinc-700 group";
-        btn.innerHTML = `
-          <span class="text-red-500 mr-2 group-hover:text-red-400">${i+1}.</span> 
-          <span class="group-hover:text-white">${reason}</span>
-        `;
-        btn.onclick = () => startMassReport(reason);
-        container.appendChild(btn);
-      });
-      document.getElementById('report-type-step').classList.remove('hidden');
-    }
-
-    function startMassReport(reason) {
-      reportName = reason;
-      document.getElementById('report-type-step').classList.add('hidden');
-      document.getElementById('live-reporting').classList.remove('hidden');
-      document.getElementById('live-target').textContent = `@${targetUsername}`;
-
-      count = 0;
-      const table = document.getElementById('live-table');
-      table.innerHTML = `
-        <div class="text-green-500 text-center py-8 font-medium">
-          ✅ Mass Report Session Started<br>
-          <span class="text-xs text-zinc-500">Target: @${targetUsername} • Reason: ${reportName}</span>
         </div>
-      `;
 
-      interval = setInterval(() => {
-        count++;
-        const row = document.createElement('div');
-        row.className = "log-row flex justify-between py-3 px-2 border-b border-zinc-800 last:border-none items-center";
-        row.innerHTML = `
-          <span class="text-cyan-400 w-12">#${count}</span>
-          <span class="text-zinc-400 text-xs w-28">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})}</span>
-          <span class="text-green-500 font-bold">REPORT SENT</span>
-          <span class="text-red-400 text-sm">${reportName}</span>
-        `;
-        table.appendChild(row);
-        table.scrollTop = table.scrollHeight;
-        document.getElementById('report-count').textContent = `${count} reports`;
-      }, 480);
-    }
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div class="lg:col-span-8 space-y-8">
+                <div class="card bg-zinc-900 border border-zinc-700 rounded-3xl p-8">
+                    <h2 class="text-2xl font-bold mb-6 flex items-center gap-3">
+                        <i class="fas fa-bullseye text-purple-500"></i> TARGET ACQUISITION
+                    </h2>
+                   
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm text-zinc-400 mb-2">TARGET USERNAME</label>
+                            <div class="flex gap-3">
+                                <input id="target-username" type="text" placeholder="@username or username"
+                                       class="flex-1 bg-black border border-zinc-700 focus:border-purple-500 rounded-2xl px-6 py-4 text-lg outline-none">
+                                <button onclick="checkUsername()" class="px-10 bg-purple-600 hover:bg-purple-700 rounded-2xl font-semibold">
+                                    CHECK
+                                </button>
+                            </div>
+                        </div>
 
-    function stopReporting() {
-      if (interval) clearInterval(interval);
-      const table = document.getElementById('live-table');
-      table.innerHTML += `
-        <div class="text-red-500 text-center py-8 font-bold text-xl border-t border-zinc-800 pt-6 mt-4">
-          🛑 REPORTING STOPPED<br>
-          <span class="text-2xl">Total Reports: ${count}</span>
+                        <div>
+                            <label class="block text-sm text-zinc-400 mb-2">REPORT TYPE</label>
+                            <select id="report-type" onchange="toggleImpersonationField()" 
+                                    class="w-full bg-black border border-zinc-700 focus:border-purple-500 rounded-2xl px-6 py-4 text-lg outline-none">
+                                <option value="spam">Spam / Fake Account</option>
+                                <option value="harassment">Harassment / Bullying</option>
+                                <option value="impersonation">Impersonation</option>
+                                <option value="violence">Violence / Threats</option>
+                                <option value="copyright">Copyright Infringement</option>
+                            </select>
+                        </div>
+
+                        <div id="impersonation-field" class="hidden">
+                            <label class="block text-sm text-zinc-400 mb-2">IMPERSONATION USERNAME</label>
+                            <input id="impersonation-username" type="text" placeholder="@originalusername"
+                                   class="w-full bg-black border border-zinc-700 focus:border-purple-500 rounded-2xl px-6 py-4 text-lg outline-none">
+                        </div>
+
+                        <div class="flex items-center justify-between bg-black/50 border border-zinc-800 rounded-2xl p-6">
+                            <div>
+                                <div class="text-sm text-zinc-400">TARGET</div>
+                                <div id="current-target" class="text-xl font-mono font-bold text-purple-400">@unknown</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm text-zinc-400">REPORTS SENT</div>
+                                <div id="report-count" class="text-4xl font-bold text-emerald-400">0</div>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-4">
+                            <button onclick="startReporting()" id="start-btn"
+                                    class="flex-1 py-6 bg-gradient-to-r from-purple-600 to-pink-600 rounded-3xl font-bold text-xl flex items-center justify-center gap-3">
+                                <i class="fas fa-rocket"></i> START MASS REPORTING
+                            </button>
+                            <button onclick="stopReporting()" id="stop-btn"
+                                    class="flex-1 py-6 bg-red-600/80 hover:bg-red-600 rounded-3xl font-bold text-xl hidden">
+                                🛑 STOP REPORTING
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mt-8">
+                        <h3 class="text-sm font-semibold mb-2 text-purple-400">REPORTING CONSOLE</h3>
+                        <div id="reporting-console" class="console p-4 rounded-2xl text-green-400 h-56 overflow-y-auto"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="lg:col-span-4 space-y-6">
+                <div class="card bg-zinc-900 border border-emerald-500/30 p-6 rounded-3xl">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
+                            <span class="font-semibold">CONNECTED</span>
+                        </div>
+                        <span class="text-xs font-mono text-emerald-400">LIVE</span>
+                    </div>
+                </div>
+
+                <div class="card bg-zinc-900 border border-zinc-700 p-6 rounded-3xl">
+                    <h3 class="font-semibold mb-4 flex items-center gap-2">
+                        <i class="fas fa-eye"></i> USERNAME MONITOR
+                    </h3>
+                    <input id="monitor-username" type="text" placeholder="Username to monitor"
+                           class="w-full bg-black border border-zinc-700 rounded-2xl px-5 py-4 mb-4">
+                    <button onclick="toggleMonitor()" id="monitor-btn"
+                            class="w-full py-4 bg-zinc-800 hover:bg-zinc-700 rounded-2xl font-medium">
+                        START MONITOR
+                    </button>
+                    <div class="mt-6">
+                        <h3 class="text-sm font-semibold mb-2 text-purple-400">MONITOR CONSOLE</h3>
+                        <div id="monitor-console" class="console p-4 rounded-2xl text-green-400 h-56 overflow-y-auto"></div>
+                    </div>
+                </div>
+            </div>
         </div>
-      `;
-    }
+    </div>
 
-    // Keyboard Support
-    document.addEventListener('keydown', function(e) {
-      if (e.key === "Enter") {
-        if (!document.getElementById('login-screen').classList.contains('hidden')) login();
-        else if (!document.getElementById('username-step').classList.contains('hidden')) checkUsername();
-        else if (!document.getElementById('monitor-section').classList.contains('hidden')) startMonitorCheck();
-      }
-    });
+    <div id="toast" class="hidden fixed bottom-6 right-6 bg-zinc-800 border border-purple-500 text-white px-6 py-4 rounded-2xl shadow-2xl"></div>
 
-    // Auto Login
-    window.onload = () => {
-      const savedUser = localStorage.getItem('currentUser');
-      if (savedUser) {
-        fetch('/api/login', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ userId: savedUser })
-        }).then(r => r.json()).then(data => {
-          if (data.success) {
-            currentUserId = savedUser;
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('main-app').classList.remove('hidden');
-            document.getElementById('user-info').innerHTML = `● ${currentUserId}`;
-            if (currentUserId === ADMIN_ID) document.getElementById('admin-nav').classList.remove('hidden');
-          } else {
-            localStorage.removeItem('currentUser');
-          }
-        });
-      }
-    };
+    <script>
+        let isReporting = false;
+        let reportInterval = null;
+        let monitorInterval = null;
 
-    window.addEventListener('beforeunload', () => {
-      stopLiveMonitor();
-      if (interval) clearInterval(interval);
-    });
-  </script>
+        function addLog(consoleId, message, type = 'normal') {
+            const consoleEl = document.getElementById(consoleId);
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+            let className = 'console-line';
+           
+            if (type === 'success') className += ' success';
+            if (type === 'error') className += ' error';
+            if (type === 'banned') className += ' banned';
+            const log = `<div class="${className}">[${time}] ${message}</div>`;
+            consoleEl.innerHTML += log;
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        function toggleImpersonationField() {
+            const reportType = document.getElementById('report-type').value;
+            const impersonationField = document.getElementById('impersonation-field');
+            if (reportType === 'impersonation') {
+                impersonationField.classList.remove('hidden');
+            } else {
+                impersonationField.classList.add('hidden');
+            }
+        }
+
+        function checkUsername() {
+            const username = document.getElementById('target-username').value.trim();
+            if (!username) return showToast("Enter a username", "error");
+            fetch('/check-username', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.exists) {
+                    document.getElementById('current-target').textContent = '@' + data.username;
+                    showToast(`✅ ${data.username} found!`, "success");
+                    addLog('reporting-console', `Target validated: @${data.username}`, 'success');
+                } else {
+                    showToast("❌ Username not found", "error");
+                    addLog('reporting-console', `Username @${username} not found`, 'error');
+                }
+            });
+        }
+
+        // Fixed: Now requires username before starting
+        function startReporting() {
+            const targetUsername = document.getElementById('target-username').value.trim();
+            
+            if (!targetUsername) {
+                showToast("❌ Please enter Target Username first!", "error");
+                addLog('reporting-console', 'Error: Target username is required', 'error');
+                return;
+            }
+
+            if (isReporting) return;
+
+            isReporting = true;
+            document.getElementById('start-btn').classList.add('hidden');
+            document.getElementById('stop-btn').classList.remove('hidden');
+            
+            let count = 0;
+            
+            reportInterval = setInterval(() => {
+                count += 1;
+                document.getElementById('report-count').textContent = count;
+                
+                addLog('reporting-console', `Report #${count} sent to @${targetUsername}`, 'success');
+            }, 2000);
+
+            addLog('reporting-console', `Mass reporting started on @${targetUsername}...`, 'success');
+        }
+
+        function stopReporting() {
+            if (reportInterval) clearInterval(reportInterval);
+            isReporting = false;
+            document.getElementById('start-btn').classList.remove('hidden');
+            document.getElementById('stop-btn').classList.add('hidden');
+            addLog('reporting-console', 'Reporting stopped by user.', 'error');
+        }
+
+        // Also improved monitoring validation
+        function toggleMonitor() {
+            const username = document.getElementById('monitor-username').value.trim();
+            if (!username) {
+                showToast("❌ Please enter username to monitor", "error");
+                return;
+            }
+
+            const btn = document.getElementById('monitor-btn');
+            if (monitorInterval) {
+                clearInterval(monitorInterval);
+                monitorInterval = null;
+                btn.textContent = "START MONITOR";
+                addLog('monitor-console', 'Monitoring stopped.', 'error');
+            } else {
+                btn.textContent = "STOP MONITOR";
+                addLog('monitor-console', `Started monitoring @${username}`, 'success');
+                monitorInterval = setInterval(() => {
+                    fetch('/check-username', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({username})
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (!data.exists) {
+                            addLog('monitor-console', `⚠️ @${username} → BANNED / NOT FOUND`, 'banned');
+                        } else {
+                            addLog('monitor-console', `✅ @${username} is active`, 'success');
+                        }
+                    });
+                }, 2000);
+            }
+        }
+
+        function showToast(msg, type = "success") {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = `fixed bottom-6 right-6 px-6 py-4 rounded-2xl shadow-2xl border ${
+                type === 'success' ? 'border-emerald-500 bg-emerald-950' : 'border-red-500 bg-red-950'
+            }`;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        window.onload = () => {
+            addLog('reporting-console', 'System initialized. Ready for attack.', 'success');
+        };
+    </script>
 </body>
 </html>
