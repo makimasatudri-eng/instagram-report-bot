@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "express": "^4.21.0",
+    "node-telegram-bot-api": "^0.66.0",
     "axios": "^1.8.0",
     "uuid": "^11.0.0",
     "cors": "^2.8.5"
