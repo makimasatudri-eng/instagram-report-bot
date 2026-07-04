@@ -1,4 +1,4 @@
-// server.js - Final Combined Version
+// server.js - Final Complete Version
 const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
 const axios = require('axios');
@@ -8,7 +8,7 @@ const path = require('path');
 const fs = require('fs');
 
 const TOKEN = process.env.TELEGRAM_TOKEN;
-const ADMIN_ID = 7145835109;
+const ADMIN_ID = "7968968395";
 
 if (!TOKEN) {
     console.error("❌ TELEGRAM_TOKEN environment variable is required!");
@@ -24,7 +24,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // User management
 const USERS_FILE = path.join(__dirname, 'user.json');
-let allowedUsers = ["7968968395"];
+let allowedUsers = [ADMIN_ID];
 
 if (fs.existsSync(USERS_FILE)) {
     try {
@@ -55,29 +55,33 @@ bot.on('message', (msg) => {
             return bot.sendMessage(chatId, "❌ WEB_APP_URL not configured on Railway!");
         }
 
-        const buttonText = isAllowed ? "🚀 Open Report Tool" : "🔒 Request Access";
-        const statusText = isAllowed ? "✅ Authorized" : "❌ Not Authorized";
+        let opts = {};
 
-        const opts = {
-            reply_markup: {
-                inline_keyboard: [[{
-                    text: buttonText,
-                    web_app: { url: webAppUrl }
-                }]]
-            }
-        };
+        // Sirf Authorized users ko hi Web App button dikhao
+        if (isAllowed) {
+            opts = {
+                reply_markup: {
+                    inline_keyboard: [[{
+                        text: "🚀 Open Report Tool",
+                        web_app: { url: webAppUrl }
+                    }]]
+                }
+            };
+        }
+
+        const statusText = isAllowed ? "✅ Authorized" : "❌ Not Authorized";
 
         bot.sendMessage(chatId,
             `👋 Welcome to *PAID ASSASSIN*\n\n` +
             `Status: ${statusText}\n\n` +
             `Your ID: \`${userId}\`\n\n` +
-            `${isAllowed ? 'Report Tool khol sakte ho ✅' : 'Access ke liye Admin se contact karo!'}`,
+            `${isAllowed ? 'Report Tool khol sakte ho ✅' : '❌ Access Denied!\nAdmin se contact karo.'}`,
             { parse_mode: "Markdown", ...opts }
         );
     }
 
     // Admin Commands
-    if (String(msg.from.id) === String(ADMIN_ID)) {
+    if (userId === ADMIN_ID) {
         if (text.startsWith('/add ')) {
             const target = text.split(' ')[1];
             if (!target) return bot.sendMessage(chatId, "Usage: /add <userid>");
@@ -95,7 +99,7 @@ bot.on('message', (msg) => {
         if (text.startsWith('/remove ')) {
             const target = text.split(' ')[1];
             if (!target) return bot.sendMessage(chatId, "Usage: /remove <userid>");
-            if (target == ADMIN_ID) return bot.sendMessage(chatId, "Cannot remove admin!");
+            if (target === ADMIN_ID) return bot.sendMessage(chatId, "Cannot remove admin!");
             
             allowedUsers = allowedUsers.filter(id => id !== target.toUpperCase());
             saveUsers();
@@ -113,10 +117,12 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Username check
 app.post('/check-username', async (req, res) => {
     let { username } = req.body;
-    if (!username) return res.json({ exists: false });
-    
+    if (!username) {
+        return res.json({ exists: false });
+    }
     username = username.trim().toLowerCase().replace('@', '');
     console.log(`Checking: ${username}`);
 
@@ -143,7 +149,8 @@ app.post('/check-username', async (req, res) => {
 
         const response = await axios.post(
             "https://i.instagram.com/api/v1/bloks/async_action/com.bloks.www.caa.ar.search.async/",
-            payload, { headers, timeout: 15000 }
+            payload,
+            { headers, timeout: 15000 }
         );
 
         const text = response.data.toString().toLowerCase();
@@ -157,7 +164,8 @@ app.post('/check-username', async (req, res) => {
     // Fallback
     try {
         const { data } = await axios.get(`https://www.instagram.com/${username}/`, {
-            headers: { 'User-Agent': 'Mozilla/5.0' }, timeout: 10000
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+            timeout: 10000
         });
         if (data.includes(`"username":"${username}"`)) {
             return res.json({ exists: true, username });
@@ -167,18 +175,28 @@ app.post('/check-username', async (req, res) => {
     res.json({ exists: false });
 });
 
+// Login
 app.post('/api/login', (req, res) => {
     const { userId } = req.body;
-    const success = allowedUsers.includes(String(userId).toUpperCase());
-    res.json({ success });
+    if (allowedUsers.includes(String(userId).toUpperCase())) {
+        return res.json({ success: true });
+    }
+    res.json({ success: false });
 });
 
-app.get('/api/users', (req, res) => res.json({ allowedUsers }));
-app.get('/api/allowed-users', (req, res) => res.json({ allowedUsers }));
+app.get('/api/users', (req, res) => {
+    res.json({ allowedUsers });
+});
+
+app.get('/api/allowed-users', (req, res) => {
+    res.json({ allowedUsers });
+});
 
 app.post('/api/add-user', (req, res) => {
     const { userId, adminId } = req.body;
-    if (adminId !== "7968968395") return res.json({ success: false });
+    if (adminId !== ADMIN_ID) {
+        return res.json({ success: false });
+    }
     const upperId = String(userId).trim().toUpperCase();
     if (!allowedUsers.includes(upperId)) {
         allowedUsers.push(upperId);
@@ -189,7 +207,12 @@ app.post('/api/add-user', (req, res) => {
 
 app.post('/api/remove-user', (req, res) => {
     const { userId, adminId } = req.body;
-    if (adminId !== "7968968395" || userId === "7968968395") return res.json({ success: false });
+    if (adminId !== ADMIN_ID) {
+        return res.json({ success: false });
+    }
+    if (userId === ADMIN_ID) {
+        return res.json({ success: false });
+    }
     allowedUsers = allowedUsers.filter(id => id !== userId);
     saveUsers();
     res.json({ success: true, allowedUsers });
