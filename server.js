@@ -249,7 +249,7 @@ app.post('/api/profile', (req, res) => {
 
     console.log(`[DEBUG] Running Python for: ${username}`);
 
-    const command = `python "${pythonScript}" < "${tempInputFile}"`;
+    const command = `python3 "${pythonScript}" < "${tempInputFile}"`;
 
     exec(command, { timeout: 20000, encoding: 'utf8' }, (error, stdout, stderr) => {
         try { fs.unlinkSync(tempInputFile); } catch(e) {}
