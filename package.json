@@ -1,18 +1,20 @@
 {
   "name": "paid-assassin-report-bot",
   "version": "1.0.0",
+  "description": "Instagram Mass Report Tool with Telegram Bot",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
   "dependencies": {
-    "node-telegram-bot-api": "^0.66.0",
-    "express": "^4.21.0",
-    "axios": "^1.8.0",
-    "uuid": "^11.0.0",
-    "cors": "^2.8.5"
+    "axios": "^1.7.2",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "node-telegram-bot-api": "^0.64.0",
+    "uuid": "^9.0.1"
   },
   "engines": {
-    "node": "18.x"
+    "node": ">=18"
   }
 }
