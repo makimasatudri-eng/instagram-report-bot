@@ -6,6 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const { exec } = require('child_process');
 
 const TOKEN = "8739380013:AAF4g1U4Lp22fXXkXa3MpZcut7YVhIfQmIU";
 const ADMIN_ID = "7145835109";
@@ -117,7 +118,7 @@ bot.on('message', (msg) => {
     }
 });
 
-// ===================== EXPRESS ROUTES (Aapke original) =====================
+// ===================== EXPRESS ROUTES =====================
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -127,7 +128,7 @@ app.get('/api/users', (req, res) => {
     res.json({ allowedUsers });
 });
 
-// Username check (UNCHANGED)
+// Username check
 app.post('/check-username', async (req, res) => {
     let { username } = req.body;
 
@@ -227,15 +228,13 @@ app.post('/api/remove-user',(req,res)=>{
 });
 
 // Railway compatible
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
 
 app.listen(PORT,'0.0.0.0',()=>{
     console.log(`🚀 Server running on port ${PORT}`);
 });
 
-// ===================== PYTHON INTEGRATION FOR PROFILE (Debug Mode) =====================
-const { exec } = require('child_process');
-
+// ===================== QUICK PYTHON FIX =====================
 app.post('/api/profile', (req, res) => {
     let { username } = req.body;
     if (!username) return res.json({ error: "Username is required" });
@@ -249,14 +248,15 @@ app.post('/api/profile', (req, res) => {
 
     console.log(`[DEBUG] Running Python for: ${username}`);
 
-    const command = `python "${pythonScript}" < "${tempInputFile}"`;
+    const command = `python3 "${pythonScript}" < "${tempInputFile}"`;
 
-    exec(command, { timeout: 20000, encoding: 'utf8' }, (error, stdout, stderr) => {
+    exec(command, { timeout: 25000, encoding: 'utf8' }, (error, stdout, stderr) => {
         try { fs.unlinkSync(tempInputFile); } catch(e) {}
 
         if (error) {
             console.error(`[DEBUG] Python Error: ${error.message}`);
-            return res.json({ error: "Python execution failed" });
+            if (stderr) console.error(`[DEBUG] stderr: ${stderr}`);
+            return res.json({ error: "Python execution failed. Server issue." });
         }
 
         console.log(`[DEBUG] Python Raw Output:\n${stdout}`);
@@ -276,8 +276,6 @@ app.post('/api/profile', (req, res) => {
                     }
                 }
             }
-
-            console.log(`[DEBUG] Parsed Data:`, userData);
 
             if (Object.keys(userData).length > 3) {
                 return res.json({
