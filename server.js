@@ -234,7 +234,7 @@ app.listen(PORT,'0.0.0.0',()=>{
     console.log(`🚀 Server running on port ${PORT}`);
 });
 
-// ===================== QUICK PYTHON FIX =====================
+// ===================== PYTHON FIX FOR RAILWAY =====================
 app.post('/api/profile', (req, res) => {
     let { username } = req.body;
     if (!username) return res.json({ error: "Username is required" });
@@ -248,49 +248,66 @@ app.post('/api/profile', (req, res) => {
 
     console.log(`[DEBUG] Running Python for: ${username}`);
 
-    const command = `python3 "${pythonScript}" < "${tempInputFile}"`;
+    const commands = [
+        `python3 "${pythonScript}" < "${tempInputFile}"`,
+        `python "${pythonScript}" < "${tempInputFile}"`,
+        `/usr/bin/python3 "${pythonScript}" < "${tempInputFile}"`
+    ];
 
-    exec(command, { timeout: 25000, encoding: 'utf8' }, (error, stdout, stderr) => {
-        try { fs.unlinkSync(tempInputFile); } catch(e) {}
+    let attempt = 0;
 
-        if (error) {
-            console.error(`[DEBUG] Python Error: ${error.message}`);
-            if (stderr) console.error(`[DEBUG] stderr: ${stderr}`);
-            return res.json({ error: "Python execution failed. Server issue." });
+    const tryCommand = () => {
+        if (attempt >= commands.length) {
+            try { fs.unlinkSync(tempInputFile); } catch(e) {}
+            return res.json({ error: "Python not available on this server. Check railway.json" });
         }
 
-        console.log(`[DEBUG] Python Raw Output:\n${stdout}`);
+        exec(commands[attempt], { timeout: 30000, encoding: 'utf8' }, (error, stdout, stderr) => {
+            try { fs.unlinkSync(tempInputFile); } catch(e) {}
 
-        try {
-            const lines = stdout.split('\n');
-            let userData = {};
+            if (error) {
+                console.error(`[DEBUG] Python Attempt ${attempt+1} Failed: ${error.message}`);
+                if (stderr) console.error(`stderr: ${stderr}`);
+                attempt++;
+                return tryCommand();
+            }
 
-            for (let line of lines) {
-                line = line.trim();
-                if (line.includes(' = ')) {
-                    const parts = line.split(' = ');
-                    const key = parts[0].trim().replace(/^Data:\s*/, '');
-                    const value = parts.slice(1).join(' = ').trim();
-                    if (key && value) {
-                        userData[key] = value;
+            console.log(`[DEBUG] Python Success!`);
+            console.log(`[DEBUG] Raw Output:\n${stdout}`);
+
+            try {
+                const lines = stdout.split('\n');
+                let userData = {};
+
+                for (let line of lines) {
+                    line = line.trim();
+                    if (line.includes(' = ')) {
+                        const parts = line.split(' = ');
+                        const key = parts[0].trim().replace(/^Data:\s*/, '');
+                        const value = parts.slice(1).join(' = ').trim();
+                        if (key && value) {
+                            userData[key] = value;
+                        }
                     }
                 }
-            }
 
-            if (Object.keys(userData).length > 3) {
-                return res.json({
-                    Message: "✅ Profile Info",
-                    user: userData
-                });
-            } else {
-                return res.json({ 
-                    error: "Could not parse profile data",
-                    raw: stdout.substring(0, 500)
-                });
+                if (Object.keys(userData).length > 3) {
+                    return res.json({
+                        Message: "✅ Profile Info",
+                        user: userData
+                    });
+                } else {
+                    return res.json({ 
+                        error: "Could not parse profile data",
+                        raw: stdout.substring(0, 500)
+                    });
+                }
+            } catch (e) {
+                console.error("[DEBUG] Parsing Error:", e);
+                return res.json({ error: "Parsing failed" });
             }
-        } catch (e) {
-            console.error("[DEBUG] Parsing Error:", e);
-            return res.json({ error: "Parsing failed" });
-        }
-    });
+        });
+    };
+
+    tryCommand();
 });
